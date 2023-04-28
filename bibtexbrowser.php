@@ -223,6 +223,9 @@ if (defined('ENCODING')) {
 @define('ORDER_YEAR_SUBMITTED', 2);
 @define('ORDER_YEAR_OTHERNONINT', 3);
 
+// reverse the sort order ?
+@define('REVERSE_SORT',false);
+
 
 // in embedded mode, we still need a URL for displaying bibtex entries alone
 // this is usually resolved to bibtexbrowser.php
@@ -2653,6 +2656,9 @@ function compare_bib_entries($bib1, $bib2) {
   if ($cmp ==0) {
     $f2 = ORDER_FUNCTION_FINE;
     $cmp = $f2($bib1, $bib2);
+  }
+  if (bibtexbrowser_configuration('REVERSE_SORT')) {
+      $cmp *= -1;
   }
   return $cmp;
 }
