@@ -998,6 +998,8 @@ function latex2html($line, $do_clean_extra_bracket=true) {
   $line = str_replace(array('---', '--'), array('&mdash;', '&ndash;'), $line);
 
   $line = str_replace(array('``', "''"), array('"', '"'), $line);
+  
+  $line = str_replace('\textregistered{}', '®', $line);
 
   // performance increases with this test
   // bug found by Serge Barral: what happens if we have curly braces only (typically to ensure case in Latex)
