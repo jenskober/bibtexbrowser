@@ -1448,8 +1448,9 @@ class BibEntry {
       $oaType = $this->getField('oa');
       switch($oaType) {
         case 'gold':
+        case 'bronze':
         case 'green':
-          return '<img src="images/oa_'.$oaType.'.png" width="9" height="14">';
+          return '<img src="images/oa_'.$oaType.'.png" alt="'.$oaType.' open access" width="9" height="14">';
         default:
           return '';
         }
