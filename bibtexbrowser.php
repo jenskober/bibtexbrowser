@@ -130,6 +130,10 @@ if (defined('ENCODING')) {
 @define('BIBTEXBROWSER_DOI_LINKS',true);
 // do we add [gsid] links (Google Scholar)?
 @define('BIBTEXBROWSER_GSID_LINKS',true);
+// do we add [code] links ?
+@define('BIBTEXBROWSER_CODE_LINKS',false);
+// do we add [video] links ?
+@define('BIBTEXBROWSER_VIDEO_LINKS',false);
 
 // should pdf, doi, url, gsid links be opened in a new window?
 @define('BIBTEXBROWSER_LINKS_TARGET','_self');// can be _blank (new window), _top (with frames)
@@ -1418,6 +1422,24 @@ class BibEntry {
     return '';
   }
 
+  /** returns "[code]" link for the entry */
+  function getCodeLink($iconurl=NULL) {
+    $str = $this->getIconOrTxt('code',$iconurl);
+    if ($this->hasField('code')) {
+        return '<a'.get_target().' href="'.$this->getField('code').'">'.$str.'</a>';
+    }
+    return '';
+  }
+  
+  /** returns "[video]" link for the entry */
+  function getVideoLink($iconurl=NULL) {
+    $str = $this->getIconOrTxt('video',$iconurl);
+    if ($this->hasField('video')) {
+        return '<a'.get_target().' href="'.$this->getField('video').'">'.$str.'</a>';
+    }
+    return '';
+  }
+
   /** replace [$ext] with an icon whose url is defined in a string
    *  e.g. getIconOrTxt('pdf') will print '[pdf]'
    *  or   getIconOrTxt('pdf','http://link/to/icon.png') will use the icon linked by the url, or print '[pdf']
@@ -1984,7 +2006,7 @@ class BibEntry {
 
     // Fields that should be hyperlinks
     // the order matters
-    $hyperlinks = array('url' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'https://doi.org/%O', 'gsid' => 'https://scholar.google.com/scholar?cites=%O');
+    $hyperlinks = array('url' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'https://doi.org/%O', 'gsid' => 'https://scholar.google.com/scholar?cites=%O', 'video' => '%O', 'code' => '%O');
 
     $vals = array();
     foreach ($hyperlinks as $field => $url) {
@@ -2115,6 +2137,16 @@ function bib2links_default($bibentry) {
 
   if (BIBTEXBROWSER_GSID_LINKS) {
     $link = $bibentry->getGSLink();
+    if ($link != '') { $links[] = $link; };
+  }
+
+  if (BIBTEXBROWSER_CODE_LINKS) {
+    $link = $bibentry->getCodeLink();
+    if ($link != '') { $links[] = $link; };
+  }
+
+  if (BIBTEXBROWSER_VIDEO_LINKS) {
+    $link = $bibentry->getVideoLink();
     if ($link != '') { $links[] = $link; };
   }
 
