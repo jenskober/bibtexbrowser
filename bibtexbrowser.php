@@ -124,7 +124,7 @@ if (defined('ENCODING')) {
 // do we add [pdf] links ?
 // if the file extention is not .pdf, the field name (pdf, url, or file) is used instead
 @define('BIBTEXBROWSER_PDF_LINKS',true);
-// do we add [pdf]/[url]/[file] links ?
+// do we add [pdf]/[url]/[webpage]/[file] links ?
 @define('BIBTEXBROWSER_DOCUMENT_LINKS',false);
 // do we add [doi] links ?
 @define('BIBTEXBROWSER_DOI_LINKS',true);
@@ -1394,13 +1394,14 @@ class BibEntry {
     }
   }
   
-  /** returns all "[pdf]/[url]/[file]" links for the entry
+  /** returns all "[pdf]/[url]/[webpage]/[file]" links for the entry
     */
   function getDocumentLinks() {
     $links = array();
     if ($this->hasField('pdf')) $links[] = $this->getAndRenameLink('pdf');
     if ($this->hasField('file')) $links[] = $this->getAndRenameLink('file');
     if ($this->hasField('url')) $links[] = $this->getAndRenameLink('url');
+    if ($this->hasField('webpage')) $links[] = $this->getAndRenameLink('webpage');
     return implode(" ",$links);
   }
 
@@ -1450,7 +1451,7 @@ class BibEntry {
         case 'gold':
         case 'bronze':
         case 'green':
-          return '<img src="images/oa_'.$oaType.'.png" alt="'.$oaType.' open access" width="9" height="14">';
+          return '<img src="images/oa_'.$oaType.'.png" alt="'.$oaType.' open access" title="'.$oaType.' open access" width="9" height="14">';
         default:
           return '';
         }
@@ -2024,7 +2025,7 @@ class BibEntry {
 
     // Fields that should be hyperlinks
     // the order matters
-    $hyperlinks = array('url' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'https://doi.org/%O', 'gsid' => 'https://scholar.google.com/scholar?cites=%O', 'video' => '%O', 'code' => '%O');
+    $hyperlinks = array('url' => '%O', 'webpage' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'https://doi.org/%O', 'gsid' => 'https://scholar.google.com/scholar?cites=%O', 'video' => '%O', 'code' => '%O');
 
     $vals = array();
     foreach ($hyperlinks as $field => $url) {
