@@ -1371,9 +1371,14 @@ class BibEntry {
     */
   function getAndRenameLink($bibfield, $iconurl=NULL) {
     $extension = strtolower(pathinfo(parse_url($this->getField($bibfield),PHP_URL_PATH),PATHINFO_EXTENSION));
+    // no extension -> check last part of url instead (e.g., MDPI)
+    if ($extension=='') {
+      $extension = strtolower(pathinfo(parse_url($this->getField($bibfield),PHP_URL_PATH),PATHINFO_FILENAME));
+    }
     switch ($extension) {
       // overriding the label if it's a known extension
       case 'html': return $this->getLink($bibfield, $iconurl, 'html'); break;
+      case 'htm': return $this->getLink($bibfield, $iconurl, 'html'); break;
       case 'pdf': return $this->getLink($bibfield, $iconurl, 'pdf'); break;
       case 'ps': return $this->getLink($bibfield, $iconurl, 'ps'); break;
       default:
