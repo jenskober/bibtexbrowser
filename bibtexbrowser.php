@@ -124,6 +124,8 @@ if (defined('ENCODING')) {
 // do we add [pdf] links ?
 // if the file extention is not .pdf, the field name (pdf, url, or file) is used instead
 @define('BIBTEXBROWSER_PDF_LINKS',true);
+// do we add [pdf]/[url]/[file] links ?
+@define('BIBTEXBROWSER_DOCUMENT_LINKS',false);
 // do we add [doi] links ?
 @define('BIBTEXBROWSER_DOI_LINKS',true);
 // do we add [gsid] links (Google Scholar)?
@@ -1385,6 +1387,16 @@ class BibEntry {
         return $this->getLink($bibfield, $iconurl, $bibfield);
     }
   }
+  
+  /** returns all "[pdf]/[url]/[file]" links for the entry
+    */
+  function getDocumentLinks() {
+    $links = array();
+    if ($this->hasField('pdf')) $links[] = $this->getAndRenameLink('pdf');
+    if ($this->hasField('file')) $links[] = $this->getAndRenameLink('file');
+    if ($this->hasField('url')) $links[] = $this->getAndRenameLink('url');
+    return implode(" ",$links);
+  }
 
 
 
@@ -2086,8 +2098,13 @@ function bib2links_default($bibentry) {
     if ($link != '') { $links[] = $link; };
   }
 
-  if (BIBTEXBROWSER_PDF_LINKS) {
+  if (BIBTEXBROWSER_PDF_LINKS && !BIBTEXBROWSER_DOCUMENT_LINKS) {
     $link = $bibentry->getUrlLink();
+    if ($link != '') { $links[] = $link; };
+  }
+  
+  if (BIBTEXBROWSER_DOCUMENT_LINKS) {
+    $link = $bibentry->getDocumentLinks();
     if ($link != '') { $links[] = $link; };
   }
 
