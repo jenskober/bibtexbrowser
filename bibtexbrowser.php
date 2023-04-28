@@ -134,6 +134,8 @@ if (defined('ENCODING')) {
 @define('BIBTEXBROWSER_CODE_LINKS',false);
 // do we add [video] links ?
 @define('BIBTEXBROWSER_VIDEO_LINKS',false);
+// do we add open access logos ?
+@define('BIBTEXBROWSER_OA',false);
 
 // should pdf, doi, url, gsid links be opened in a new window?
 @define('BIBTEXBROWSER_LINKS_TARGET','_self');// can be _blank (new window), _top (with frames)
@@ -1430,12 +1432,27 @@ class BibEntry {
     }
     return '';
   }
-  
+
   /** returns "[video]" link for the entry */
   function getVideoLink($iconurl=NULL) {
     $str = $this->getIconOrTxt('video',$iconurl);
     if ($this->hasField('video')) {
         return '<a'.get_target().' href="'.$this->getField('video').'">'.$str.'</a>';
+    }
+    return '';
+  }
+
+  /** returns OA logo for the entry */
+  function getOALogo() {
+    if ($this->hasField('oa')) {
+      $oaType = $this->getField('oa');
+      switch($oaType) {
+        case 'gold':
+        case 'green':
+          return '<img src="images/oa_'.$oaType.'.png" width="9" height="14">';
+        default:
+          return '';
+        }
     }
     return '';
   }
@@ -2147,6 +2164,11 @@ function bib2links_default($bibentry) {
 
   if (BIBTEXBROWSER_VIDEO_LINKS) {
     $link = $bibentry->getVideoLink();
+    if ($link != '') { $links[] = $link; };
+  }
+
+  if (BIBTEXBROWSER_OA) {
+    $link = $bibentry->getOALogo();
     if ($link != '') { $links[] = $link; };
   }
 
