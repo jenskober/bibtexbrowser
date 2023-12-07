@@ -76,7 +76,7 @@ if (defined('ENCODING')) {
 @define('MATHJAX_URI', '//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/config/TeX-AMS_HTML.js?V=2.7.1');
 
 // the default jquery URI
-@define('JQUERY_URI', '//code.jquery.com/jquery-1.5.1.min.js');
+@define('JQUERY_URI', '//code.jquery.com/jquery-3.6.4.min.js');
 
 // can we load bibtex files on external servers?
 @define('BIBTEXBROWSER_LOCAL_BIB_ONLY', true);
@@ -169,6 +169,10 @@ if (defined('ENCODING')) {
 
 @define('BIBTEXBROWSER_DEBUG',false);
 
+// should we cache the parsed bibtex file?
+// ref: https://github.com/monperrus/bibtexbrowser/issues/128
+@define('BIBTEXBROWSER_USE_CACHE',true);
+
 // how to print authors names?
 // default => as in the bibtex file
 // USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT = true => "Meyer, Herbert"
@@ -253,6 +257,10 @@ if (defined('ENCODING')) {
 define('Q_INNER_AUTHOR', '_author');// internally used for representing the author
 define('Q_INNER_TYPE', 'x-bibtex-type');// used for representing the type of the bibtex entry internally
 @define('Q_INNER_KEYS_INDEX', '_keys-index');// used for storing indices in $_GET[Q_KEYS] array
+
+define('Q_NAME', 'name');// used to allow for exact last name matches in multisearch
+define('Q_AUTHOR_NAME', 'author_name');// used to allow for exact last name matches in multisearch
+define('Q_EDITOR_NAME', 'editor_name');// used to allow for exact last name matches in multisearch
 
 // for clean search engine links
 // we disable url rewriting
@@ -361,7 +369,11 @@ function _zetDB($bibtex_filenames) {
   }
 
 
-
+  $parse=true;
+  $updated = false;
+  
+  if (config_value('BIBTEXBROWSER_USE_CACHE')==true) {
+  
   // ---------------------------- HANDLING caching of compiled bibtex files
   // for sake of performance, once the bibtex file is parsed
   // we try to save a "compiled" in a txt file
@@ -391,7 +403,8 @@ function _zetDB($bibtex_filenames) {
       $parse=true;
     }
   } else {$parse=true;}
-
+  }
+  
   // we don't have a compiled version
   if ($parse) {
     //echo '<!-- parsing -->';
@@ -402,7 +415,6 @@ function _zetDB($bibtex_filenames) {
     }
   }
 
-  $updated = false;
   // now we may update the database
   if (!file_exists($compiledbib)) {
     @touch($compiledbib);
@@ -1227,7 +1239,7 @@ class BibEntry {
     return $this->timestamp;
   }
 
-  /** Returns the type of this bib entry. */
+  /** Returns the type of this bib entry (always lowercase). */
   function getType() {
     // strtolower is important to be case-insensitive
     return strtolower($this->getField(Q_INNER_TYPE));
@@ -1550,12 +1562,18 @@ class BibEntry {
 
   /** Returns the authors of this entry as an array (split by " and ") */
   function getRawAuthors() {
-    return $this->split_authors();
+    return $this->split_names(Q_AUTHOR);
   }
 
-  function split_authors() {
-    if (!array_key_exists(Q_AUTHOR, $this->raw_fields)) return array();
-    $array = preg_split('/ and( |$)/ims', @$this->raw_fields[Q_AUTHOR]);
+  // Previously called split_authors. Made generic to allow call on editors as well.
+  function split_names($key) {
+    if (!array_key_exists($key, $this->raw_fields)) return array();
+
+    // Sometimes authors/editors are split by line breaks followed by whitespace in bib files.
+    // In this case we need to replace these with a normal space.
+    $raw = preg_replace( '/\s+/', ' ', @$this->raw_fields[$key]);
+    $array = preg_split('/ and( |$)/ims', $raw);
+
     $res = array();
     // we merge the remaining ones
     for ($i=0; $i < count($array)-1; $i++) {
@@ -1750,6 +1768,12 @@ class BibEntry {
       $editors[]=$editor;
     }
     return $editors;
+  }
+
+
+  /** Returns the editors of this entry as an array (split by " and ") */
+  function getRawEditors() {
+    return $this->split_names(EDITOR);
   }
 
   /** Returns the editors of this entry as an arry */
@@ -2940,10 +2964,11 @@ class MenuManager {
   /** function called back by HTMLTemplate */
   function display() {
   echo $this->searchView().'<br/>';
-  echo $this->typeVC().'<br/>';
+  echo $this->venueVC().'<br/>';
   echo $this->yearVC().'<br/>';
   echo $this->authorVC().'<br/>';
   echo $this->tagVC().'<br/>';
+  echo $this->typeVC().'<br/>';
   }
 
   /** Displays the title in a table. */
@@ -2986,6 +3011,16 @@ class MenuManager {
     $this->displayMenu('Types', $types, $page, $this->type_size, Q_TYPE_PAGE, Q_INNER_TYPE);
   }
 
+  
+  /** Displays and controls the venues. */
+  function venueVC() {
+    // retrieve authors list to display
+    $data = $this->db->venueIndex();
+        
+    $this->displayMenu('Venues', $data, 1, 100000, Q_SEARCH,
+                       Q_SEARCH);
+  }
+  
   /** Displays and controls the authors menu in a table. */
   function authorVC() {
     // retrieve authors list to display
@@ -3978,6 +4013,24 @@ class BibDataBase {
     return $result;
   }
 
+  function venueIndex(){
+    $tmp = array();
+    foreach ($this->bibdb as $bib) {
+      if ($bib->getType()=="article") {
+        @$tmp[$bib->getField("journal")]++;
+      }
+      if ($bib->getType()=="inproceedings") {
+        @$tmp[$bib->getField("booktitle")]++;
+      }
+    }
+    arsort($tmp);
+    $result=array();
+    foreach ($tmp as $k=>$v) {
+      $result[$k]=$k;
+    }
+    return $result;
+  }
+  
   /** Generates and returns an array consisting of all tags.
    */
   function tagIndex(){
@@ -4091,6 +4144,31 @@ class BibDataBase {
             // moved here so that it is also used by AcademicDisplay:search2html()
             if (!$bib->hasPhrase('^('.$fragment.')$', Q_INNER_TYPE))  {
               $entryisselected = false;
+              break;
+            }
+          }
+          else if ($field==Q_NAME || $field==Q_AUTHOR_NAME || $field==Q_EDITOR_NAME) {
+            // Names require exact matching per name. Although a preg_match over the entire author field is possible,
+            // it's inconvenient and often results in unwanted matches if not done careful. Instead, use
+            // 'name'=>'(M. Monperrus|Monperrus, M.)' to exact match the name of an author or editor, use
+            // 'author_name' to match the name of an author, and use 'editor_name' to match the name of an editor.
+            $names = [];
+            if ($field==Q_NAME || $field==Q_AUTHOR_NAME)
+              $names = array_merge($bib->getRawAuthors(), $names);
+            if ($field==Q_NAME || $field==Q_EDITOR_NAME)
+              $names = array_merge($bib->getRawEditors(), $names);
+
+            if (empty($names)) {
+              $entryisselected = false;
+            } else {
+              foreach ($names as $name) {
+                $entryisselected = preg_match('/^' . $fragment . '$/', trim($name));
+                if ($entryisselected) {
+                  break;
+                }
+              }
+            }
+            if (!$entryisselected) {
               break;
             }
           }
