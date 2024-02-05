@@ -2158,42 +2158,44 @@ function get_HTML_tag_for_layout() {
 function bib2links_default($bibentry) {
   $links = array();
 
-  if (BIBTEXBROWSER_BIBTEX_LINKS) {
+  if (c('BIBTEXBROWSER_BIBTEX_LINKS')) {
     $link = $bibentry->getBibLink();
     if ($link != '') { $links[] = $link; };
   }
 
-  if (BIBTEXBROWSER_PDF_LINKS && !BIBTEXBROWSER_DOCUMENT_LINKS) {
-    $link = $bibentry->getUrlLink();
-    if ($link != '') { $links[] = $link; };
+  if (c('BIBTEXBROWSER_PDF_LINKS')) {
+    if (!c('BIBTEXBROWSER_DOCUMENT_LINKS')) {
+      $link = $bibentry->getUrlLink();
+      if ($link != '') { $links[] = $link; };
+    }
   }
   
-  if (BIBTEXBROWSER_DOCUMENT_LINKS) {
+  if (c('BIBTEXBROWSER_DOCUMENT_LINKS')) {
     $link = $bibentry->getDocumentLinks();
     if ($link != '') { $links[] = $link; };
   }
 
-  if (BIBTEXBROWSER_DOI_LINKS) {
+  if (c('BIBTEXBROWSER_DOI_LINKS')) {
     $link = $bibentry->getDoiLink();
     if ($link != '') { $links[] = $link; };
   }
 
-  if (BIBTEXBROWSER_GSID_LINKS) {
+  if (c('BIBTEXBROWSER_GSID_LINKS')) {
     $link = $bibentry->getGSLink();
     if ($link != '') { $links[] = $link; };
   }
 
-  if (BIBTEXBROWSER_CODE_LINKS) {
+  if (c('BIBTEXBROWSER_CODE_LINKS')) {
     $link = $bibentry->getCodeLink();
     if ($link != '') { $links[] = $link; };
   }
 
-  if (BIBTEXBROWSER_VIDEO_LINKS) {
+  if (c('BIBTEXBROWSER_VIDEO_LINKS')) {
     $link = $bibentry->getVideoLink();
     if ($link != '') { $links[] = $link; };
   }
 
-  if (BIBTEXBROWSER_OA) {
+  if (c('BIBTEXBROWSER_OA')) {
     $link = $bibentry->getOALogo();
     if ($link != '') { $links[] = $link; };
   }
@@ -2534,6 +2536,10 @@ function DefaultBibliographyStyle($bibentry) {
 
   if ($bibentry->hasField(YEAR)) $entry[] = '<span itemprop="datePublished">'.$bibentry->getYear().'</span>';
 
+  if ($bibentry->hasField("note")) {
+    $entry[] = $bibentry->getField("note");
+  }
+  
   $result = implode(", ",$entry).'.';
 
   // add the Coin URL
@@ -4993,9 +4999,6 @@ class Dispatcher {
 
   function keys() {
     // Create array from list of bibtex entries
-    if (get_magic_quotes_gpc()) {
-      $_GET[Q_KEYS] = stripslashes($_GET[Q_KEYS]);
-    }
     $_GET[Q_KEYS] = (array) json_decode(urldecode($_GET[Q_KEYS])); // decode and cast the object into an (associative) array
     // Make the array 1-based (keeps the string keys unchanged)
     array_unshift($_GET[Q_KEYS],"__DUMMY__");
