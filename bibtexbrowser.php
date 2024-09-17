@@ -3486,6 +3486,7 @@ function nonExistentBibEntryError() {
 /** handles queries with no result */
 class NotFoundDisplay {
   function display() {
+    header('HTTP/1.1 404 Not found');
     echo '<span class="count">'.__('Sorry, no results for this query').'</span>';
   }
 }
@@ -4520,7 +4521,9 @@ usage:
 class PagedDisplay {
 
   var $query = array();
-
+  var $page = 1;
+  var $entries = array();
+  
   function __construct() {
     $this->setPage();
   }
@@ -5018,7 +5021,10 @@ class Dispatcher {
     exit;
   }
 
-  function frameset() {    ?>
+  function frameset() {
+    $this->getDB(); // will throw 404 if bib file does not exist
+    
+    ?>
 
 
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
