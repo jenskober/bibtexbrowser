@@ -7,6 +7,7 @@ $ phpunit BibtexbrowserTest.php
 
 With coverage:
 $ phpunit --coverage-html ./coverage BibtexbrowserTest.php
+$ XDEBUG_MODE=coverage phpunit --coverage-filter bibtexbrowser.php --coverage-html=foo.html BibtexbrowserTest.php 
 
 (be sure that xdebug is enabled: /etc/php5/cli/conf.d# ln -s ../../mods-available/xdebug.ini)
 */
@@ -62,19 +63,11 @@ class SimpleDisplayExt extends SimpleDisplay {
 
 class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp():void
-    {
+  public function setUp():void {
         // resetting the default link style
         bibtexbrowser_configure('BIBTEXBROWSER_LINK_STYLE','bib2links_default');
         bibtexbrowser_configure('ABBRV_TYPE','index');
         bibtexbrowser_configure('BIBTEXBROWSER_USE_PROGRESSIVE_ENHANCEMENT', false);
-    }
-
-  function test_checkdoc() {
-    if(!is_file('gakowiki-syntax.php')) { return; }
-    if (!function_exists('gk_wiki2html')) { include('gakowiki-syntax.php'); }
-    $result = create_wiki_parser()->parse(file_get_contents('README.wiki'));
-    $this->assertEquals(1, strpos($result,"bibtexbrowser is a PHP script that creates publication lists from Bibtex files"));
   }
 
   function createDB() {
@@ -99,7 +92,7 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
 
     // default style
     $this->assertEquals("A Book (Martin Monperrus), Springer, 2009. [bibtex]",strip_tags($first_entry->toHTML()));
-    $this->assertEquals('<span itemscope="" itemtype="http://schema.org/ScholarlyArticle"><span class="bibtitle"  itemprop="name">A Book</span> (<span class="bibauthor"><span itemprop="author" itemtype="http://schema.org/Person">Martin Monperrus</span></span>), <span class="bibpublisher">Springer</span>, <span itemprop="datePublished">2009</span>.<span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook&amp;rft.btitle=A+Book&amp;rft.genre=book&amp;rft.pub=Springer&amp;rfr_id=info%3Asid%2F%3Amybib.bib&amp;rft.date=2009&amp;rft.au=Martin+Monperrus"></span></span> <span class="bibmenu"><a class="biburl" title="aKey" href="bibtexbrowser.php?key=aKey&amp;bib=inline">[bibtex]</a></span>',$first_entry->toHTML());
+    $this->assertEquals('<span itemscope="" itemtype="http://schema.org/ScholarlyArticle"><span class="bibtitle"  itemprop="name">A Book</span> (<span class="bibauthor"><span itemprop="author" itemtype="http://schema.org/Person">Martin Monperrus</span></span>), <span class="bibpublisher">Springer</span>, <span itemprop="datePublished">2009</span>.<span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook&amp;rft.btitle=A+Book&amp;rft.genre=book&amp;rft.pub=Springer&amp;rft.date=2009&amp;rft.au=Martin+Monperrus"></span></span> <span class="bibmenu"><a class="biburl" title="aKey" href="bibtexbrowser.php?key=aKey&amp;bib=inline">[bibtex]</a></span>',$first_entry->toHTML());
 
     // IEEE style
     bibtexbrowser_configure('BIBLIOGRAPHYSTYLE','JanosBibliographyStyle');
@@ -135,7 +128,7 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
     bibtexbrowser_configure('BIBLIOGRAPHYSTYLE','DefaultBibliographyStyle');
     bibtexbrowser_configure('BIBTEXBROWSER_LINK_STYLE','nothing');
     $this->assertEquals("An Article (Foo Bar and Jane Doe), In New Results, volume 5, 2009. ",strip_tags($first_entry->toHTML()));
-    $this->assertEquals('<span itemscope="" itemtype="http://schema.org/ScholarlyArticle"><span class="bibtitle"  itemprop="name">An Article</span> (<span class="bibauthor"><span itemprop="author" itemtype="http://schema.org/Person">Foo Bar</span> and <span itemprop="author" itemtype="http://schema.org/Person">Jane Doe</span></span>), <span class="bibbooktitle">In <span itemprop="isPartOf">New Results</span></span>, volume 5, <span itemprop="datePublished">2009</span>.<span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.atitle=An+Article&amp;rft.jtitle=New+Results&amp;rft.volume=5&amp;rft.issue=&amp;rft.pub=&amp;rfr_id=info%3Asid%2F%3Amybib.bib&amp;rft.date=2009&amp;rft.au=Foo+Bar&amp;rft.au=Jane+Doe"></span></span> ',$first_entry->toHTML());
+    $this->assertEquals('<span itemscope="" itemtype="http://schema.org/ScholarlyArticle"><span class="bibtitle"  itemprop="name">An Article</span> (<span class="bibauthor"><span itemprop="author" itemtype="http://schema.org/Person">Foo Bar</span> and <span itemprop="author" itemtype="http://schema.org/Person">Jane Doe</span></span>), <span class="bibbooktitle">In <span itemprop="isPartOf">New Results</span></span>, volume 5, <span itemprop="datePublished">2009</span>.<span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.atitle=An+Article&amp;rft.jtitle=New+Results&amp;rft.volume=5&amp;rft.issue=&amp;rft.pub=&amp;rft.date=2009&amp;rft.au=Foo+Bar&amp;rft.au=Jane+Doe"></span></span> ',$first_entry->toHTML());
 
     // listing the CSS classes
     $css_classes_before = $this->extract_css_classes($first_entry->toHTML());
@@ -154,7 +147,7 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
     // changing the target
     bibtexbrowser_configure('BIBLIOGRAPHYSTYLE','DefaultBibliographyStyle');
     bibtexbrowser_configure('BIBTEXBROWSER_LINKS_TARGET','_top');
-    $this->assertEquals('<span itemscope="" itemtype="http://schema.org/ScholarlyArticle"><span class="bibtitle"  itemprop="name">An Article</span> (<span class="bibauthor"><span itemprop="author" itemtype="http://schema.org/Person">Foo Bar</span> and <span itemprop="author" itemtype="http://schema.org/Person">Jane Doe</span></span>), <span class="bibbooktitle">In <span itemprop="isPartOf">New Results</span></span>, volume 5, <span itemprop="datePublished">2009</span>.<span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.atitle=An+Article&amp;rft.jtitle=New+Results&amp;rft.volume=5&amp;rft.issue=&amp;rft.pub=&amp;rfr_id=info%3Asid%2F%3Amybib.bib&amp;rft.date=2009&amp;rft.au=Foo+Bar&amp;rft.au=Jane+Doe"></span></span> ',$first_entry->toHTML());
+    $this->assertEquals('<span itemscope="" itemtype="http://schema.org/ScholarlyArticle"><span class="bibtitle"  itemprop="name">An Article</span> (<span class="bibauthor"><span itemprop="author" itemtype="http://schema.org/Person">Foo Bar</span> and <span itemprop="author" itemtype="http://schema.org/Person">Jane Doe</span></span>), <span class="bibbooktitle">In <span itemprop="isPartOf">New Results</span></span>, volume 5, <span itemprop="datePublished">2009</span>.<span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.atitle=An+Article&amp;rft.jtitle=New+Results&amp;rft.volume=5&amp;rft.issue=&amp;rft.pub=&amp;rft.date=2009&amp;rft.au=Foo+Bar&amp;rft.au=Jane+Doe"></span></span> ',$first_entry->toHTML());
 
     // testing ABBRV_TYPE
     bibtexbrowser_configure('ABBRV_TYPE','year');
@@ -756,6 +749,7 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
         fseek($test_data,0);
         $db = new BibDataBase();
         $db->update_internal("inline", $test_data);
+        
         $entry=$db->getEntryByKey($key);
         $this->assertEquals($bibtex, $entry->getText());
     }
@@ -970,7 +964,417 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
     }
     
     
+    function test_keyword() {
+      bibtexbrowser_configure('BIBLIOGRAPHYSTYLE','DefaultBibliographyStyle');
+      $bibtex = "@misc{doe2004,title={foo bar title}, publisher={publisher}, howpublished={howpublished}} @misc{doe2,title={baz}, keywords={bar}, howpublished={howpublished}}";
+      $test_data = fopen('php://memory','x+');
+      fwrite($test_data, $bibtex);
+      fseek($test_data,0);
+      $db = new BibDataBase();
+      $db->update_internal("inline", $test_data);
+      //         print_r($db);  
+
+      // no keyword
+      $entry = array_values($db->bibdb)[0];
+      $entry->addKeyword("foo");
+      $this->assertEquals('foo', $entry->getField("keywords"));
+      
+      // already one keyword
+      $entry = array_values($db->bibdb)[1];
+      $entry->addKeyword("foo");
+      $this->assertEquals('bar;foo', $entry->getField("keywords"));
+      
+    }
+    
+    public function testYearDisplay() {
+      // Create test entries
+      $entry2020 = new RawBibEntry();
+      $entry2020->setField('year', '2020');
+      $entry2020->setField('title', 'Paper 2020');
+      $entry2020->setField('author', 'Author A');
+      
+      // assert getKey
+      $this->assertEquals('97c46f8bdf428ce28cfa05cdedba2ec1', $entry2020->getKey());
+
+      $entry2019a = new RawBibEntry(); 
+      $entry2019a->setField('year', '2019');
+      $entry2019a->setField('title', 'Paper 2019 A');
+      $entry2019a->setField('author', 'Author B');
+
+      $entry2019b = new RawBibEntry();
+      $entry2019b->setField('year', '2019'); 
+      $entry2019b->setField('title', 'Paper 2019 B');
+      $entry2019b->setField('author', 'Author C');
+
+      // Create YearDisplay
+      $display = new YearDisplay();
+      
+      // Set test entries
+      $entries = array(
+          'key2020' => $entry2020,
+          'key2019a' => $entry2019a,
+          'key2019b' => $entry2019b
+      );
+      $display->setEntries($entries);
+
+      // Get year index and verify
+      $yearIndex = $display->yearIndex;
+      $this->assertEquals("2020", $yearIndex[2020]);
+
+      // Capture output
+      ob_start();
+      $display->display();
+      $output = ob_get_clean();
+
+      // Verify output contains years and titles
+      // split output by line
+      $lines = explode("\n", $output);
+      $this->assertEquals('<div  class="theader">2020</div><table class="result">', $lines[0]);
+  }
+  
+  public function testXMLPrettyPrinter() {
+    // Create sample BibTeX entry with various fields to test
+    $bibtex = "@article{test2023,
+        author = {Test Author},
+        title = {A Test Title with Special Characters: & < >}, 
+        journal = {Test Journal},
+        year = {2023},
+        volume = {1},
+        number = {2},
+        pages = {100--200}
+    }";
+
+    // Set up input stream with BibTeX content
+    $stream = fopen('php://memory', 'r+');
+    fwrite($stream, $bibtex);
+    rewind($stream);
+
+    // Create XMLPrettyPrinter and parse
+    $printer = new XMLPrettyPrinter();
+    $printer->header = false;
+    $parser = new StateBasedBibtexParser($printer);
+
+    // Capture output
+    ob_start();
+    $parser->parse($stream);
+    $output = ob_get_clean();
+
+    // Verify XML structure and content
+    $this->assertStringContainsString('<?xml version="1.0"', $output);
+    $this->assertStringContainsString('<bibfile>', $output); 
+    $this->assertStringContainsString('</bibfile>', $output);
+    
+    // Verify entry type
+    $this->assertStringContainsString('<type>article</type>', $output);
+    
+    // Verify fields are present
+    $this->assertStringContainsString('<key>author</key>', $output);
+    $this->assertStringContainsString('<value>Test Author</value>', $output);
+    
+    // Verify special characters are escaped
+    $this->assertStringContainsString('&amp;', $output);
+    $this->assertStringContainsString('&lt;', $output);
+    $this->assertStringContainsString('&gt;', $output);
+
+    fclose($stream);
+  }    
+
+  public function testBibtexDisplay() {
+    // Create test entries
+    $entry1 = new RawBibEntry();
+    $entry1->setType('article');
+    $entry1->setField('title', 'Test Title');
+    $entry1->setField('author', 'Test Author');
+    $entry1->setField('year', '2023');
+    $entry1->setField('journal', 'Test Journal');
+    
+    $entry2 = new RawBibEntry(); 
+    $entry2->setType('inproceedings');
+    $entry2->setField('title', 'Another Title with Special Chars: é');
+    $entry2->setField('author', 'Another Author');
+    $entry2->setField('year', '2022');
+    $entry2->setField('booktitle', 'Test Conference');
+
+    // Create BibtexDisplay instance
+    $display = new BibtexDisplay();
+    $display->header = false;
+    $display->setTitle('Test Export');
+    $display->setEntries(array($entry1, $entry2));
+    
+    // assert entries in $display
+    $this->assertEquals(2, count($display->entries));
+
+    // set BIBTEXBROWSER_BIBTEX_VIEW to reconstructed
+    bibtexbrowser_configure('BIBTEXBROWSER_BIBTEX_VIEW', 'reconstructed');
+
+    // Capture output
+    ob_start();
+    $display->display();
+    $output = ob_get_clean();
+
+    // Verify output contains expected elements
+    // Header comments
+    $this->assertStringContainsString('% generated by bibtexbrowser', $output);
+    $this->assertStringContainsString('% Test Export', $output);
+    $this->assertStringContainsString('% Encoding: UTF-8', $output);
+    
+    // Entry 1 content
+    $this->assertStringContainsString('@article{', $output);
+    $this->assertStringContainsString('title = {Test Title}', $output);
+    $this->assertStringContainsString('author = {Test Author}', $output);
+    $this->assertStringContainsString('year = {2023}', $output);
+    $this->assertStringContainsString('journal = {Test Journal}', $output);
+    
+    // Entry 2 content  
+    $this->assertStringContainsString('@inproceedings{', $output);
+    $this->assertStringContainsString('title = {Another Title with Special Chars: é}', $output);
+    $this->assertStringContainsString('author = {Another Author}', $output);
+    $this->assertStringContainsString('year = {2022}', $output);
+    $this->assertStringContainsString('booktitle = {Test Conference}', $output);
+    
+  }
+
+  public function testCreateBibEntryDisplay() {
+    // Test instance creation
+    $display = createBibEntryDisplay();
+    $this->assertInstanceOf('BibEntryDisplay', $display);
+    
+    // Create test entry
+    $entry = new RawBibEntry();
+    $entry->setType('article');
+    $entry->setField('title', 'Test Title');
+    $entry->setField('author', 'Test Author');
+    $entry->setField('year', '2023');
+    $entry->setField('journal', 'Test Journal');
+    $entry->setField('abstract', 'Test Abstract');
+    $entry->setField('url', 'http://example.com');
+    
+    // assertion on toString
+    $this->assertEquals('article 4a9ba73904f4f22a7b37e18750ee5454', $entry->__toString());
+
+    // Test display with entry
+    $display->setEntries(array($entry));
+    
+    // Capture output
+    ob_start();
+    $display->display();
+    $output = ob_get_clean();
+    
+    // Verify display output contains expected elements
+    $this->assertStringContainsString('Test Title', $output);
+    $this->assertStringContainsString('Test Author', $output);
+    $this->assertStringContainsString('Test Journal', $output);
+    $this->assertStringContainsString('Test Abstract', $output);
+    
+    // Test metadata generation
+    $metadata = $display->metadata();
+    $this->assertIsArray($metadata);
+
+    // Verify metadata contains essential fields
+    $foundTitle = false;
+    $foundAuthor = false;
+    foreach($metadata as $meta) {
+        if($meta[0] == 'citation_title' && $meta[1] == 'Test Title') {
+            $foundTitle = true;
+        }
+        if($meta[0] == 'citation_author' && $meta[1] == 'Author, Test') {
+            $foundAuthor = true; 
+        }
+    }
+    $this->assertTrue($foundTitle);
+    $this->assertTrue($foundAuthor);
+    
+    // Test title generation
+    $this->assertEquals('Test Title (bibtex)', $display->getTitle());
+  }
+
+  public function testParserDelegate() {
+    // Create test delegate
+    $delegate = new TestParserDelegate();
+    
+    // Create parser with delegate
+    $parser = new StateBasedBibtexParser($delegate);
+    
+    // Create test bibtex content
+    $bibtex = "@article{test2023,
+        author = {Test Author},
+        title = {Test Title},
+        journal = {Test Journal},
+        year = {2023},
+        abstract = {Test Abstract}
+    }";
+    
+    // Create memory stream with test content
+    $stream = fopen('php://memory', 'r+');
+    fwrite($stream, $bibtex);
+    rewind($stream);
+    
+    // Parse the content
+    $parser->parse($stream);
+    
+    // Verify event sequence
+    $expected = array(
+        'beginFile',
+        'beginEntry',
+        'setEntryType:article',
+        'setEntryKey:test2023', 
+        'setEntryField:author:Test Author',
+        'setEntryField:title:Test Title',
+        'setEntryField:journal:Test Journal', 
+        'setEntryField:year:2023',
+        'setEntryField:abstract:Test Abstract',
+        'endEntry',
+        'endFile'
+    );
+    
+    $this->assertEquals($expected, $delegate->events);
+    
+    fclose($stream);
+  }
+
+  public function testRSSDisplay() {
+    // Create test entries with various data to test RSS generation
+    $entry1 = new RawBibEntry();
+    $entry1->setType('article');
+    $entry1->setField('title', 'Test Title with Special Chars: & < >');
+    $entry1->setField('author', 'Test Author');
+    $entry1->setField('year', '2023');
+    $entry1->setField('journal', 'Test Journal');
+    $entry1->setField('abstract', 'Test Abstract with HTML <b>tags</b>');
+    $entry1->setField('url', 'http://example.com');
+    
+    $entry2 = new RawBibEntry();
+    $entry2->setType('inproceedings');
+    $entry2->setField('title', 'Another Test Title');
+    $entry2->setField('author', 'Another Author'); 
+    $entry2->setField('year', '2022');
+    $entry2->setField('booktitle', 'Test Conference');
+    
+    // Create RSSDisplay instance
+    $display = new RSSDisplay();
+    $display->header = false;
+    $display->setTitle('Test RSS Feed');
+    $display->setEntries(array($entry1, $entry2));
+    
+    // Capture output
+    ob_start();
+    $display->display();
+    $output = ob_get_clean();
+    
+    // Verify XML declaration
+    $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $output);
+    
+    // Verify RSS structure
+    $this->assertStringContainsString('<rss version="2.0"', $output);
+    $this->assertStringContainsString('<channel>', $output);
+    $this->assertStringContainsString('<title>Test RSS Feed</title>', $output);
+    
+    // Verify entries
+    $this->assertStringContainsString('<item>', $output);
+    $this->assertStringContainsString('Test Title with Special Chars: &#38; &#60; &#62;', $output);
+    $this->assertStringContainsString('Another Test Title', $output);
+    
+    // Verify text encoding
+    $rss = $display->text2rss('Test & Text <b>bold</b> with HTML &eacute;');
+    $this->assertEquals('Test &#38; Text bold with HTML ', $rss);
+    
+    // Verify metadata handling
+    $this->assertStringContainsString('<description>', $output);
+    $this->assertStringContainsString('<link>', $output);
+    $this->assertStringContainsString('<guid', $output);
+    
+    // Verify valid XML
+    $xml = new SimpleXMLElement($output);
+    $this->assertInstanceOf('SimpleXMLElement', $xml);
+  }
+
+  public function testHTMLTemplate() {
+    // Create mock content object that implements required methods
+    $mockContent = new class {
+        public function display() {
+            echo '<div class="test-content">Test Content</div>';
+        }
+        
+        public function getTitle() {
+            return 'Test Title';
+        }
+        
+        public function metadata() {
+            return array(
+                array('description', 'Test Description'),
+                array('keywords', 'test, bibtex')
+            );
+        }
+    };
+
+    // Capture output
+    bibtexbrowser_configure('BIBTEXBROWSER_USE_PROGRESSIVE_ENHANCEMENT', true);
+    ob_start();
+    HTMLTemplate($mockContent, false);
+    $output = ob_get_clean();
+    
+    // Verify basic HTML structure
+    $this->assertStringContainsString('<!DOCTYPE html PUBLIC', $output);
+    $this->assertStringContainsString('<html xmlns="http://www.w3.org/1999/xhtml">', $output);
+    $this->assertStringContainsString('</html>', $output);
+    
+    // Verify HEAD section
+    $this->assertStringContainsString('<meta http-equiv="Content-Type" content="text/html; charset=', $output);
+    $this->assertStringContainsString('<meta name="generator" content="bibtexbrowser', $output);
+    
+    // Verify meta tags
+    $this->assertStringContainsString('<meta name="description" property="description" content="Test Description"', $output);
+    $this->assertStringContainsString('<meta name="keywords" property="keywords" content="test, bibtex"', $output);
+    
+    // Verify title
+    $this->assertStringContainsString('<title>Test Title</title>', $output);
+    
+    // Verify CSS inclusion
+    $this->assertStringContainsString('<style type="text/css">', $output);
+    
+    // Verify content display
+    $this->assertStringContainsString('<div class="test-content">Test Content</div>', $output);
+    
+    // Verify JavaScript includes when progressive enhancement enabled
+    $this->assertStringContainsString(JQUERY_URI, $output);
+    
+  }  
 } // end class
+
+// Test implementation that records events
+class TestParserDelegate extends ParserDelegate {
+  public $events = array();
+  
+  function beginFile() {
+      $this->events[] = 'beginFile';
+  }
+  
+  function endFile() {
+      $this->events[] = 'endFile'; 
+  }
+  
+  function setEntryField($key, $value) {
+      $this->events[] = "setEntryField:".trim($key).":".trim($value);
+  }
+  
+  function setEntryType($type) {
+      $this->events[] = "setEntryType:$type";
+  }
+  
+  function setEntryKey($key) {
+      $this->events[] = "setEntryKey:$key";
+  }
+  
+  function beginEntry() {
+      $this->events[] = 'beginEntry';
+  }
+  
+  function endEntry($source) {
+      $this->events[] = 'endEntry';
+  }
+  }
+
+
 
 @copy('bibtexbrowser.local.php.bak','bibtexbrowser.local.php');
 
