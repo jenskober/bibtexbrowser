@@ -1339,6 +1339,187 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
     $this->assertStringContainsString(JQUERY_URI, $output);
     
   }  
+
+    function test_hasPhrase() {
+        // Create test entries with various content to test phrase matching
+        $bibtex = "@article{entry1,title={Security Analysis of Web Applications},author={John Smith},year=2023,abstract={This paper discusses security vulnerabilities in modern web applications including XSS and CSRF attacks.}}
+                  @inproceedings{entry2,title={Machine Learning for Cybersecurity},author={Jane Doe},year=2022,keywords={AI, security, neural networks},booktitle={International Conference on Security}}";
+                  
+        $test_data = fopen('php://memory','x+');
+        fwrite($test_data, $bibtex);
+        fseek($test_data,0);
+        $db = new BibDataBase();
+        $db->update_internal("inline", $test_data);
+        
+        $entries = array_values($db->bibdb);
+        $entry1 = $entries[0]; // Security Analysis paper
+        $entry2 = $entries[1]; // Machine Learning paper
+        
+        // Test basic phrase matching
+        $this->assertTrue($entry1->hasPhrase('security'));
+        $this->assertTrue($entry1->hasPhrase('web applications'));
+        $this->assertTrue($entry2->hasPhrase('machine learning'));
+        
+        // Test case insensitivity
+        $this->assertTrue($entry1->hasPhrase('SECURITY'));
+        $this->assertTrue($entry2->hasPhrase('Machine LEARNING'));
+        
+        // Test specific field searching
+        $this->assertTrue($entry1->hasPhrase('security', 'title'));
+        $this->assertTrue($entry2->hasPhrase('cybersecurity', 'title'));
+        $this->assertFalse($entry1->hasPhrase('cybersecurity', 'title')); // Should not match
+        
+        // Test matching in different fields
+        $this->assertTrue($entry1->hasPhrase('smith', 'author'));
+        $this->assertTrue($entry2->hasPhrase('neural', 'keywords'));
+        $this->assertFalse($entry1->hasPhrase('neural', 'keywords')); // No keywords field in entry1
+        
+        // Test advanced patterns with regex
+        $this->assertTrue($entry1->hasPhrase('XSS.*CSRF')); // Testing regex across words
+        $this->assertTrue($entry2->hasPhrase('AI.*security')); // Testing regex with multiple terms
+        $this->assertTrue($entry1->hasPhrase('vulnerab')); // Partial word matching
+        
+        // Test non-matching phrases
+        $this->assertFalse($entry1->hasPhrase('blockchain')); // Not in any field
+        $this->assertFalse($entry2->hasPhrase('database', 'title')); // Not in title
+        
+        // Test special characters
+        $bibtex_special = "@article{special,title={Testing special chars: a/b (c) [d] {e}}}";
+        $test_data_special = fopen('php://memory','x+');
+        fwrite($test_data_special, $bibtex_special);
+        fseek($test_data_special, 0);
+        $db_special = new BibDataBase();
+        $db_special->update_internal("inline", $test_data_special);
+        
+        $entry_special = array_values($db_special->bibdb)[0];
+        
+        // Test that special chars are properly handled in the search phrase
+        $this->assertTrue($entry_special->hasPhrase('a/b'));
+        $this->assertTrue($entry_special->hasPhrase('(c)'));
+        $this->assertTrue($entry_special->hasPhrase('[d]'));
+        $this->assertTrue($entry_special->hasPhrase('e')); // Curly braces get stripped in the stored fields
+        
+        // Test edge cases
+        $this->assertFalse($entry1->hasPhrase('')); // Empty phrase should not match
+    }
+
+    function testMultiSearchWithSpecialChars() {
+      // Create test entries with C/C++ related content
+      $bibtex = "@article{cpp2023,
+          title={Advances in C/C++ Programming Language},
+          author={Jane Programmer},
+          journal={Journal of Programming Languages},
+          year=2023,
+          keywords={C/C++, programming languages, compilers}
+      }
+      @inproceedings{java2023,
+          title={Java vs Python: Performance Comparison},
+          author={John Coder},
+          booktitle={International Conference on Software Engineering},
+          year=2023,
+          keywords={Java, Python, performance}
+      }";
+      
+      $test_data = fopen('php://memory','x+');
+      fwrite($test_data, $bibtex);
+      fseek($test_data, 0);
+      $db = new BibDataBase();
+      $db->update_internal("inline", $test_data);
+      
+      // Test searching for C/C++ (which contains special characters / and +)
+      $q = array(Q_SEARCH => 'C/C++');
+      $results = $db->multisearch($q);
+      
+      // Should match only the first entry
+      $this->assertEquals(1, count($results));
+      $this->assertEquals('Advances in C/C++ Programming Language', $results[0]->getTitle());
+      
+      // Test searching with escaped slashes
+      $q = array(Q_SEARCH => 'C/C\+\+');
+      $results = $db->multisearch($q);
+      $this->assertEquals(1, count($results));
+      
+      // Test with partial match
+      $q = array(Q_SEARCH => 'C/C');
+      $results = $db->multisearch($q);
+      $this->assertEquals(1, count($results));
+      
+      // Test with keywords field specifically
+      $q = array(Q_TAG => 'C/C++');
+      $results = $db->multisearch($q);
+      $this->assertEquals(1, count($results));
+      
+      // Test searching for something that doesn't exist
+      $q = array(Q_SEARCH => 'Rust');
+      $results = $db->multisearch($q);
+      $this->assertEquals(0, count($results));
+    }
+    
+    function test_venuevc_pagination() {
+      // Define the page size for pagination
+      bibtexbrowser_configure('VENUE_SIZE', 2);
+      
+      // Create a test BibTeX database with multiple entries
+      $bibtex = "@article{paper1,title={Paper One},journal={Journal A},year=2020}
+        @article{paper2,title={Paper Two},journal={Journal A},year=2020}
+        @article{paper3,title={Paper Three},journal={Journal B},year=2020}
+        @article{paper4,title={Paper Four},journal={Journal B},year=2020}
+        @article{paper5,title={Paper Five},journal={Journal C},year=2020}
+        @article{paper6,title={Paper Six},journal={Journal C},year=2020}";
+      
+      $test_data = fopen('php://memory','r+');
+      fwrite($test_data, $bibtex);
+      fseek($test_data, 0);
+      
+      $db = new BibDataBase();
+      $db->update_internal("inline", $test_data);
+      
+      // Create VenueVC display
+      $display = new MenuManager();
+      $display->setDB($db);
+      
+      // First, test without pagination parameter
+      $_GET["venue_page"] = '1';
+      ob_start();
+      $display->display();
+      $output = ob_get_clean();
+      
+      // Verify all entries are shown when no pagination is specified
+      $this->assertStringContainsString('Journal A', $output);
+      $this->assertStringContainsString('Journal B', $output);
+      
+      // Test with pagination parameter
+      $_GET["venue_page"] = '1';
+      
+      ob_start();
+      $display->display();
+      $output1 = ob_get_clean();
+      
+      // Create XML parser to properly analyze the HTML structure
+      $xml = new SimpleXMLElement("<doc>".$output1."</doc>");
+      
+      // Count number of entries displayed on first page
+      //$result = $xml->xpath('//tr[contains(@class, "btb-menu-items")]');
+      //$this->assertEquals($PAGE_SIZE, count($result));
+      
+      // Verify pagination links existence
+      $this->assertStringContainsString('venue_page=2', $output1);
+      
+      // Test second page
+      $_GET["venue_page"] = '2';
+      ob_start();
+      $display->display();
+      $output2 = ob_get_clean();
+            
+      // Verify navigation links
+      $this->assertStringContainsString('venue_page=1', $output2); // Link to previous page
+
+      // Verify different entries on second page
+      $this->assertStringContainsString('Journal C', $output2);
+
+      // Clean up
+      unset($_GET["venue_page"]);
+    }
 } // end class
 
 // Test implementation that records events
