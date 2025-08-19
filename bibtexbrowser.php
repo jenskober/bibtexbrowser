@@ -1114,7 +1114,16 @@ function latex2html($line, $do_clean_extra_bracket=true) {
 
   $line = char2html($line,'c','c',"cedil");
   $line = char2html($line,'c','s',"cedil");
+  
+  $line = char2html($line,'v','c',"caron");
+  $line = char2html($line,'v','d',"caron");
+  $line = char2html($line,'v','e',"caron");
+  $line = char2html($line,'v','l',"caron");
+  $line = char2html($line,'v','n',"caron");
+  $line = char2html($line,'v','r',"caron");
   $line = char2html($line,'v','s',"caron");
+  $line = char2html($line,'v','t',"caron");
+  $line = char2html($line,'v','z',"caron");
 
   $line = str_replace('\\ae','&aelig;', $line);
   $line = str_replace('\\ss','&szlig;', $line);
