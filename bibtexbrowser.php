@@ -132,6 +132,8 @@ if (defined('ENCODING')) {
 @define('BIBTEXBROWSER_GSID_LINKS',true);
 // do we add [code] links ?
 @define('BIBTEXBROWSER_CODE_LINKS',false);
+// do we add [data] links ?
+@define('BIBTEXBROWSER_DATA_LINKS',false);
 // do we add [video] links ?
 @define('BIBTEXBROWSER_VIDEO_LINKS',false);
 // do we add open access logos ?
@@ -1464,6 +1466,15 @@ class BibEntry {
     }
     return '';
   }
+  
+  /** returns "[data]" link for the entry */
+  function getDataLink($iconurl=NULL) {
+    $str = $this->getIconOrTxt('data',$iconurl);
+    if ($this->hasField('data')) {
+        return '<a'.get_target().' href="'.$this->getField('data').'">'.$str.'</a>';
+    }
+    return '';
+  }
 
   /** returns "[video]" link for the entry */
   function getVideoLink($iconurl=NULL) {
@@ -2223,6 +2234,11 @@ function bib2links_default($bibentry) {
 
   if (c('BIBTEXBROWSER_CODE_LINKS')) {
     $link = $bibentry->getCodeLink();
+    if ($link != '') { $links[] = $link; };
+  }
+  
+  if (c('BIBTEXBROWSER_DATA_LINKS')) {
+    $link = $bibentry->getDataLink();
     if ($link != '') { $links[] = $link; };
   }
 

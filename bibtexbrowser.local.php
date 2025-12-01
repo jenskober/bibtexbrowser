@@ -177,6 +177,7 @@ function echoSortedBreak($query, $db) {
   define('BIBTEXBROWSER_LINKS_TARGET','_blank');
   define('BIBTEXBROWSER_DOCUMENT_LINKS',true);
   define('BIBTEXBROWSER_CODE_LINKS',true);
+  define('BIBTEXBROWSER_DATA_LINKS',true);
   define('BIBTEXBROWSER_VIDEO_LINKS',true);
   define('BIBTEXBROWSER_OA',true);
   define('ORDER_FUNCTION_FINE','compare_bib_entry_by_name');
