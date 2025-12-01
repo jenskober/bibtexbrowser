@@ -1455,6 +1455,72 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
       $this->assertEquals(0, count($results));
     }
     
+    function test_tags_pagination() {
+      // Define the page size for pagination
+      bibtexbrowser_configure('TAGS_SIZE', 2);
+      
+      // Create a test BibTeX database with multiple entries and keywords
+      $bibtex = "@article{paper1,title={Paper One},keywords={tagA, tagB},year=2020}
+      @article{paper2,title={Paper Two},keywords={tagC},year=2020}
+      @article{paper3,title={Paper Three},keywords={tagD},year=2020}
+      @article{paper4,title={Paper Four},keywords={tagE},year=2020}";
+      
+      $test_data = fopen('php://memory','r+');
+      fwrite($test_data, $bibtex);
+      fseek($test_data, 0);
+      
+      $db = new BibDataBase();
+      $db->update_internal("inline", $test_data);
+      
+      // Create MenuManager display
+      $display = new MenuManager();
+      $display->setDB($db);
+      
+      // Test the first page
+      $_GET["tags_page"] = '1';
+      ob_start();
+      $display->display();
+      $output1 = ob_get_clean();
+      
+      // Tags are sorted alphabetically.
+      $this->assertStringContainsString('tagA', $output1);
+      $this->assertStringContainsString('tagB', $output1);
+      $this->assertStringNotContainsString('tagC', $output1);
+      
+      // Verify pagination link to the next page
+      $this->assertStringContainsString('keywords_page=2', $output1);
+      
+      // Test the second page
+      $_GET["keywords_page"] = '2';
+      ob_start();
+      $display->display();
+      $output2 = ob_get_clean();
+      
+      $this->assertStringContainsString('tagC', $output2);
+      $this->assertStringContainsString('tagD', $output2);
+      $this->assertStringNotContainsString('tagA', $output2);
+      $this->assertStringNotContainsString('tagE', $output2);
+      
+      // Verify navigation links to previous and next pages
+      $this->assertStringContainsString('keywords_page=1', $output2);
+      $this->assertStringContainsString('keywords_page=3', $output2);
+
+      // Test the third page
+      $_GET["keywords_page"] = '3';
+      ob_start();
+      $display->display();
+      $output3 = ob_get_clean();
+
+      $this->assertStringContainsString('tagE', $output3);
+      $this->assertStringNotContainsString('tagD', $output3);
+
+      // Verify navigation link to the previous page
+      $this->assertStringContainsString('keywords_page=2', $output3);
+      $this->assertStringNotContainsString('keywords_page=4', $output3); // No next page
+
+      // Clean up
+      unset($_GET["keywords_page"]);
+    }
     function test_venuevc_pagination() {
       // Define the page size for pagination
       bibtexbrowser_configure('VENUE_SIZE', 2);
@@ -1519,6 +1585,61 @@ class BibtexbrowserTest extends PHPUnit_Framework_TestCase {
 
       // Clean up
       unset($_GET["venue_page"]);
+    }
+
+    function test_AcademicDisplay() {
+      // Create test BibTeX database with entries from different categories
+        $bibtex = "@article{journal1,title={Journal Article},author={John Doe},journal={Nature},year=2023,type={Journal Articles}}
+        @inproceedings{conf1,title={Conference Paper},author={Jane Smith},booktitle={ICSE},year=2023,type={Refereed Conference Papers}}
+        @book{book1,title={A Book},author={Bob Johnson},publisher={Springer},year=2022,type={Books}}
+        @techreport{tech1,title={Technical Report},author={Alice Brown},institution={MIT},year=2023,type={Technical Reports}}";
+        
+        $test_data = fopen('php://memory','x+');
+        fwrite($test_data, $bibtex);
+        fseek($test_data,0);
+        $db = new BibDataBase();
+        $db->update_internal("inline", $test_data);
+        
+        // Test with BIBTEXBROWSER_ACADEMIC_TOC = true
+        bibtexbrowser_configure('BIBTEXBROWSER_ACADEMIC_TOC', true);
+        
+        $display = new AcademicDisplay();
+        $display->setDB($db);
+        
+        ob_start();
+        $display->display();
+        $output_with_toc = ob_get_clean();
+        
+        // Verify TOC is present
+        // $this->assertStringContainsString('class="btb-menu-toc"', $output_with_toc);
+        $this->assertStringContainsString('Refereed Articles', $output_with_toc);
+        
+        // Verify HTML structure for both cases
+        $xml1 = new SimpleXMLElement("<doc>".$output_with_toc."</doc>");
+        $headers1 = $xml1->xpath('//div[@class="sheader"]');
+        $this->assertEquals(0, count($headers1));
+        $anchors = $xml1->xpath('//h2');
+        $this->assertGreaterThan(3, count($anchors));
+
+
+        // Test with BIBTEXBROWSER_ACADEMIC_TOC = false
+        bibtexbrowser_configure('BIBTEXBROWSER_ACADEMIC_TOC', false);
+        
+        $display2 = new AcademicDisplay();
+        $display2->setDB($db);
+        
+        ob_start();
+        $display2->display();
+        $output_without_toc = ob_get_clean();
+        
+        // Verify TOC is not present
+        $this->assertStringNotContainsString('class="btb-menu-toc"', $output_without_toc);
+        // But category headers should still be present
+        $this->assertStringContainsString('Refereed Articles', $output_without_toc);
+                
+        $xml2 = new SimpleXMLElement("<doc>".$output_without_toc."</doc>");
+        $headers2 = $xml2->xpath('//div[@class="sheader"]');
+        $this->assertGreaterThan(0, count($headers2));
     }
 } // end class
 
